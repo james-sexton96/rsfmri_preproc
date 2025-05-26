@@ -97,7 +97,7 @@ def preproc_workflow(input_dir, output_dir, subject_list, ses_list, anat_file, f
                 name="moco")
     fproc.connect([(slicetime, moco, [('out_file', 'in_file')])])
 
-    moco_bpfdt = Node(MOCObpfdt(), name='moco_bpfdt')  # use the matlab function to correct the motion regressor
+    moco_bpfdt = Node(GenericBpfDt(out_file='MOCO_bpfdt.1D'), name='moco_bpfdt')  # use the matlab function to correct the motion regressor
     fproc.connect([(moco, moco_bpfdt, [('oned_file', 'in_file')])])
 
     '''
@@ -250,7 +250,7 @@ def preproc_workflow(input_dir, output_dir, subject_list, ses_list, anat_file, f
     regressors.connect([(erocsf, meancsf, [('out_file', 'mask')])])
     preproc.connect([(coreg, regressors, [('warp.output_image', 'meancsf.in_file')])])
 
-    bpf_dt_csf = Node(CSFbpfdt(), name='bpf_dt_csf')
+    bpf_dt_csf = Node(GenericBpfDt(out_file='CSF_bpfdt.1D'), name='bpf_dt_csf')
     regressors.connect([(meancsf, bpf_dt_csf, [('out_file', 'in_file')])])
 
     '''

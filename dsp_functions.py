@@ -9,32 +9,34 @@ as functions within a node. These require MATLAB or Octave. These can be substit
 '''
 
 """
-The following code creates a node for nipype to pass outputs from the previous node into. This is used specifically
-to bandpass filter and detrend the CSF regressors from CSF later in the pipeline. For filenaming reassons, this code is
-copied below for motion correction regressors too.
+The following code creates a node for nipype to pass outputs from the previous node into. 
+This is used to bandpass filter and detrend regressors.
 """
 
-class bpfdtcsfInputSpec(BaseInterfaceInputSpec):
-    """ configures the input interface. Dedicated to bandpass filtering and detrending the CSF regressor """
-    in_file = File(exists=True, mandatory=True)
-    out_file = File('CSF_bpfdt.1D', usedefault=True)
+class GenericBpfDtInputSpec(BaseInterfaceInputSpec):
+    """ Configures the input interface for bandpass filtering and detrending """
+    in_file = File(exists=True, mandatory=True, desc='Input file to be processed')
+    out_file = File(mandatory=True, desc='Name of the output file')
 
+class GenericBpfDtOutputSpec(TraitedSpec):
+    """ Configures the output interface for nipype. """
+    out_file = File(exists=True, desc='Path to the processed output file')
 
-class bpfdtcsfOutputSpec(TraitedSpec):
-    """ configures the output interface for nipype. Dedicated to bandpass filtering and detrending the CSF regressor """
-    out_file = File(exists=True)
-
-
-class CSFbpfdt(BaseInterface):
-    input_spec = bpfdtcsfInputSpec
-    output_spec = bpfdtcsfOutputSpec
+class GenericBpfDt(BaseInterface):
+    """
+    Generic Nipype interface for bandpass filtering and detrending a file.
+    """
+    input_spec = GenericBpfDtInputSpec
+    output_spec = GenericBpfDtOutputSpec
 
     def _run_interface(self, runtime):
-        """Creates a dictionary to insert infile and outfile name,
-        runs the matlab commands specified and saves the runtime variables"""
+        """
+        Creates a dictionary to insert infile and outfile name,
+        runs the matlab commands specified and saves the runtime variables.
+        """
         d = dict(in_file=self.inputs.in_file,
                  out_file=self.inputs.out_file)
-        # this is your MATLAB code template
+        # MATLAB code template
         script = Template(
             """oned = load('$in_file'); 
                 bpf = bandpass(oned, [0.01 0.08]);
@@ -52,46 +54,7 @@ class CSFbpfdt(BaseInterface):
     def _list_outputs(self):
         """Gets appropriate runtime variable and stores as output"""
         outputs = self._outputs().get()
-        outputs['out_file'] = os.path.abspath('CSF_bpfdt.1D')
-        return outputs
-
-
-class bpfdtInputSpec(BaseInterfaceInputSpec):
-    in_file = File(exists=True, mandatory=True)
-    out_file = File('MOCO_bpfdt.1D', usedefault=True)
-
-
-class bpfdtOutputSpec(TraitedSpec):
-    out_file = File(exists=True)
-
-
-'''
-Copied from above for motion correction node
-'''
-
-
-class MOCObpfdt(BaseInterface):
-    input_spec = bpfdtInputSpec
-    output_spec = bpfdtOutputSpec
-
-    def _run_interface(self, runtime):
-        d = dict(in_file=self.inputs.in_file,
-                 out_file=self.inputs.out_file)
-        # this is your MATLAB code template
-        script = Template("""oned = load('$in_file');
-        bpf = bandpass(oned, [0.01 0.08]);
-        bpfdt = detrend(bpf, 2);
-        save('$out_file', 'bpfdt', '-ascii');
-        exit;""").substitute(d)
-
-        mlab = MatlabCommand(script=script, mfile=True)
-        result = mlab.run()
-
-        return result.runtime
-
-    def _list_outputs(self):
-        outputs = self._outputs().get()
-        outputs['out_file'] = os.path.abspath('MOCO_bpfdt.1D')
+        outputs['out_file'] = os.path.abspath(self.inputs.out_file)
         return outputs
 
 
